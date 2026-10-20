@@ -1,0 +1,109 @@
+import yts from 'yt-search';
+import { download, getYTDLP } from '../../core/ytdlp.js';
+import { readFile, unlink } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+let handler = async (m, { conn, text }) => {
+    if (!text?.trim()) {
+        return conn.reply(
+            m.chat,
+            '🎵 اكتب اسم الأغنية أو القارئ أو التلاوة.\nمثال: .يوت قرآن عبدالباسط',
+            m
+        );
+    }
+
+    let loadingMsg;
+    let outputPath = path.join(process.env.HOME, 'tmp', `yot_${Date.now()}`);
+
+    try {
+        loadingMsg = await conn.sendMessage(m.chat, {
+            text: `🔎 جاري البحث عن: ${text}\n🎧 استنى شوية...`
+        }, { quoted: m });
+
+        const results = await yts(text.trim());
+        const video = results.videos?.[0];
+
+        if (!video?.url) {
+            throw new Error('ملقيتش نتيجة مناسبة للبحث ده.');
+        }
+
+        await getYTDLP();
+
+        const resultPath = await download(video.url, outputPath, {
+            audioOnly: true,
+            platform: 'youtube'
+        });
+
+        const candidates = [
+            `${outputPath}.mp3`,
+            outputPath,
+            `${outputPath}.webm`,
+            `${outputPath}.m4a`,
+            `${outputPath}.opus`
+        ];
+        const audioPath = candidates.find(file => existsSync(file));
+
+        if (!audioPath || !existsSync(audioPath)) {
+            throw new Error('التحميل انتهى لكن ملف الصوت مش موجود.');
+        }
+
+        const audioBuffer = await readFile(audioPath);
+
+        if (!audioBuffer.length) {
+            throw new Error('ملف الصوت فاضي.');
+        }
+
+        if (audioBuffer.length > 25 * 1024 * 1024) {
+            throw new Error('حجم الصوت كبير للإرسال؛ جرّب نتيجة أقصر.');
+        }
+
+        try {
+            await conn.sendMessage(m.chat, {
+                delete: loadingMsg.key
+            });
+        } catch {}
+
+        await conn.sendMessage(m.chat, {
+            audio: audioBuffer,
+            mimetype: 'audio/mpeg',
+            fileName: `${(video.title || 'audio').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80)}.mp3`,
+            ptt: false
+        }, { quoted: m });
+
+    } catch (err) {
+        console.error('[يوت]', err);
+
+        if (loadingMsg?.key) {
+            try {
+                await conn.sendMessage(m.chat, {
+                    delete: loadingMsg.key
+                });
+            } catch {}
+        }
+
+        await conn.reply(
+            m.chat,
+            `❌ مقدرتش أجيب الصوت.\nالسبب: ${err.message || 'خطأ غير معروف'}`,
+            m
+        );
+    } finally {
+        for (const file of [
+            outputPath,
+            `${outputPath}.mp3`,
+            `${outputPath}.webm`,
+            `${outputPath}.m4a`
+        ]) {
+            try {
+                await unlink(file);
+            } catch {}
+        }
+    }
+};
+
+handler.help = ['يوت (اسم الصوت)'];
+handler.tags = ['search'];
+handler.command = /^يوت$/i;
+
+export default handler;

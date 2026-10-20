@@ -1,0 +1,53 @@
+let handler = m => m;
+
+handler.before = async function (m, { conn, isOwner, isROwner }) {
+    if (!m.text) return false;
+    
+    let txt = m.text.trim();
+
+    if (txt === "بوتي") {
+        if (isOwner || isROwner) {
+            let loveMessages = [
+                '❤️ *قلب بوتك من جوه يا مطوري..*',
+                '✨ *مطوري وحبيبي.. أمرك مطاع!*',
+                '😍 *عُيون بوتك.. محتاج حاجة يا بطل؟*',
+                '🫡 *حبك مطوري.. البوت كله فداك!*'
+            ];
+            let randomReply = loveMessages[Math.floor(Math.random() * loveMessages.length)];
+            
+            let msg = `🍻🥂 *موجود يعم وربنا 🥂🍻*
+
+ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+*انت المالك بتاعي ي قلبي 🍻🥂*
+ــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+
+*اوامرني وبوتك ينفذ 🥂🍻*
+
+[𝑯𝑨𝑴𝑶]
+
+𓉘᳟ี ⃞̸͢𑁃 ̚𓉝᳟ี ͟͟͞͞┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦━┄꫶︦┄꯭๋━┄꯭๋━┄꫶︦╯`;
+            
+            let replies = [
+                msg,
+                'عيونو 😍❤️',
+                'نعسان محدش يصحيني🙄😴'
+            ];
+            if (isROwner) replies.push('قلب بوتكك من جواا ❤️🫶');
+
+            let previous = globalThis.__maxBotiLastReply;
+            let available = replies.filter(reply => reply !== previous);
+            if (!available.length) available = replies;
+
+            let chosen = available[Math.floor(Math.random() * available.length)];
+            globalThis.__maxBotiLastReply = chosen;
+            await m.reply(chosen);
+        } else {
+            await m.reply(`   ⃝⃘︢︣֟፝ · ͟͟͞͞➳ 𝑴𝑨𝑿 𝑩𝑶𝑻\n*بس ي خول انت ع الصبح بطل بعبصه 🍻🥂*\n𓉘᳟ี ⃞̸͢𑁃 ̚𓉝᳟ี ͟͟͞͞┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦━┄꫶︦┄꯭๋━┄꯭๋━┄꫶︦╯`);
+        }
+        return true;
+    }
+
+    return false;
+};
+
+export default handler;

@@ -1,0 +1,57 @@
+import fetch from 'node-fetch';
+
+let handler = async (m, { conn, text }) => {
+    if (!text) return conn.reply(m.chat, `*[❗] الاستخدام الصحيح:*\n\n│\n*├ׁ̟̇˚₊· ͟͟͞͞➳❥ بحث_تيك [كلمة البحث]*\n*│*\n\n*📌 مثال:*\n.بحث_تيك محمد رمضان`, m);
+
+    // رسالة جاري البحث
+    let loadingMsg = await conn.sendMessage(m.chat, { 
+        text: `   ⃝⃘︢︣֟፝ · ͟͟͞͞➳ 𝑴𝑨𝑿 𝑩𝑶𝑻\n🔍 *جاري البحث في TikTok عن "${text}"...*\n𓉘᳟ี ⃞̸͢𑁃 ̚𓉝᳟ี ͟͟͞͞┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦━┄꫶︦┄꯭๋━┄꯭๋━┄꫶︦╯`
+    }, { quoted: m });
+
+    try {
+        let res = await fetch(`https://www.emam-api.web.id/home/sections/Search/api/tiktok/videos?q=${encodeURIComponent(text)}`);
+        let { data } = await res.json();
+
+        if (data && data.length > 0) {
+            // حذف رسالة التحميل
+            await conn.sendMessage(m.chat, { delete: loadingMsg.key });
+
+            for (let i = 0; i < Math.min(data.length, 3); i++) {
+                let { title, no_watermark: video } = data[i];
+
+                let msg = `   ⃝⃘︢︣֟፝ · ͟͟͞͞➳ 𝑴𝑨𝑿 𝑩𝑶𝑻
+🎵 *بحث TikTok*
+
+📝 *العنوان:* ${title || 'بدون عنوان'}
+🔍 *البحث:* ${text}
+📊 *${i + 1}/${Math.min(data.length, 3)}*
+
+​➥ 𝑴𝑨𝑿 𝑩𝑶𝑻 👑
+𓉘᳟ี ⃞̸͢𑁃 ̚𓉝᳟ี ͟͟͞͞┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦┄꯭๋━┄꫶︦━┄꫶︦┄꯭๋━┄꯭๋━┄꫶︦╯`;
+
+                await conn.sendMessage(m.chat, {
+                    video: { url: video },
+                    caption: msg
+                }, { quoted: m });
+
+                if (i < Math.min(data.length, 3) - 1) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+        } else {
+            await conn.sendMessage(m.chat, { delete: loadingMsg.key });
+            conn.reply(m.chat, `❌ *لا توجد نتائج لـ "${text}"*`, m);
+        }
+
+    } catch (err) {
+        console.error('[بحث_تيك] error:', err.message);
+        try { await conn.sendMessage(m.chat, { delete: loadingMsg.key }); } catch (e) {}
+        conn.reply(m.chat, '❌ *حدث خطأ في البحث!*', m);
+    }
+};
+
+handler.help = ['بحث_تيك (كلمة)'];
+handler.tags = ['search'];
+handler.command = /^(بحث_تيك|تيك_بحث)$/i;
+
+export default handler;

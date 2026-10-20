@@ -1,0 +1,40 @@
+import fetch from 'node-fetch';
+
+let handler = async (m, { conn }) => {
+    try {
+        const apiUrl = 'https://api.agatz.xyz/api/matching';
+        let data;
+
+        try {
+            const res = await fetch(apiUrl, { timeout: 15000 });
+            if (!res.ok) throw new Error(`Primary API HTTP ${res.status}`);
+            const json = await res.json();
+            if (json?.data?.boy && json?.data?.girl) data = json.data;
+        } catch (e) {
+            console.error('[تطقيم] Primary API:', e.message);
+        }
+
+        if (!data) {
+            const res2 = await fetch('https://raw.githubusercontent.com/Xov445447533/Xov11111/master/src/JSON/matching.json', { timeout: 15000 });
+            if (!res2.ok) throw new Error(`Backup HTTP ${res2.status}`);
+            const list = await res2.json();
+            const item = Array.isArray(list) ? list[Math.floor(Math.random() * list.length)] : null;
+            if (item?.boy && item?.girl) data = item;
+            else throw new Error('Both sources returned an unexpected format');
+        }
+
+        const caption = '💕 *تـطـقـيـم الـيـوم*\n\n➥ 𝑴𝑨𝑿 𝑩𝑶𝑻 👑\n💡 للتالي اكتب .تطقيم';
+        await conn.sendMessage(m.chat, { image: { url: data.boy }, caption: `👦 *Boy*\n\n${caption}` }, { quoted: m });
+        await conn.sendMessage(m.chat, { image: { url: data.girl }, caption: `👧 *Girl*\n\n${caption}` }, { quoted: m });
+    } catch (err) {
+        console.error('[تطقيم] error:', err);
+        await conn.reply(m.chat, '❌ حصل خطأ في جلب الصور. راجع سجل التيرمكس لمعرفة السبب.', m);
+    }
+};
+
+handler.help = ['تطقيم', 'ماتشينج'];
+handler.tags = ['group'];
+handler.command = /^(تطقيم|ماتشينج|matching)$/i;
+handler.group = true;
+
+export default handler;
